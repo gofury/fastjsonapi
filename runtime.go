@@ -15,8 +15,9 @@ const (
 	UnmarshalStop
 	MarshalStart
 	MarshalStop
-	ContentType = "application/vnd.api+json"
 )
+
+var ContentType = []byte("application/vnd.api+json")
 
 type Runtime struct {
 	ctx map[string]interface{}
@@ -26,7 +27,9 @@ type Events func(*Runtime, Event, string, time.Duration)
 
 var Instrumentation Events
 
-func NewRuntime() *Runtime { return &Runtime{make(map[string]interface{})} }
+func NewRuntime() *Runtime {
+	return &Runtime{make(map[string]interface{})}
+}
 
 func (r *Runtime) WithValue(key string, value interface{}) *Runtime {
 	r.ctx[key] = value
@@ -110,8 +113,8 @@ func newUUID() (string, error) {
 		return "", err
 	}
 	// variant bits; see section 4.1.1
-	uuid[8] = uuid[8]&^0xc0 | 0x80
+	uuid[8] = uuid[8] &^ 0xc0 | 0x80
 	// version 4 (pseudo-random); see section 4.1.3
-	uuid[6] = uuid[6]&^0xf0 | 0x40
+	uuid[6] = uuid[6] &^ 0xf0 | 0x40
 	return fmt.Sprintf("%x-%x-%x-%x-%x", uuid[0:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:]), nil
 }
