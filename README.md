@@ -223,11 +223,11 @@ only. If you want to serialize many records, see,
 #### Handler Example Code
 
 ```go
-func CreateBlog(w http.ResponseWriter, r *http.Request) {
+func CreateBlog(ctx *fasthttp.RequestCtx) {
 	blog := new(Blog)
 
-	if err := jsonapi.UnmarshalPayload(r.Body, blog); err != nil {
-		http.Error(w, err.Error(), 500)
+	if err := fastjsonapi.UnmarshalPayload(r.Body, blog); err != nil {
+		ctx.Error(err.Error(), fasthttp.StatusInternalServerError)
 		return
 	}
 
@@ -237,7 +237,7 @@ func CreateBlog(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/vnd.api+json")
 
 	if err := jsonapi.MarshalOnePayload(w, blog); err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), fasthttp.StatusInternalServerError)
 	}
 }
 ```
@@ -293,7 +293,7 @@ func ListBlogs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Header().Set("Content-Type", "application/vnd.api+json")
 	if err := jsonapi.MarshalManyPayload(w, blogs); err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), fasthttp.StatusInternalServerError)
 	}
 }
 ```
@@ -326,17 +326,21 @@ be produced by the client.  This method aims to enable that.
 out := bytes.NewBuffer(nil)
 
 // testModel returns a pointer to a Blog
-jsonapi.MarshalOnePayloadEmbedded(out, testModel())
+fastjsonapi.MarshalOnePayloadEmbedded(out, testModel())
 
-h := new(BlogsHandler)
+blogHandler := func(ctx *fasthttp.RequestCtx) {
+        // ... fasthttp.RequestHandler for blogs
+}
 
-w := httptest.NewRecorder()
-r, _ := http.NewRequest("POST", "/blogs", out)
+ctx := fasthttp.RequestCtx{}
+ctx.Request.Header.SetMethod("POST")
+ctx.Request.SetRequestURI("/blogs")
+ctx.Request.SetBody(out.Bytes())
 
-h.CreateBlog(w, r)
+blogHandler(ctx)
 
 blog := new(Blog)
-jsonapi.UnmarshalPayload(w.Body, blog)
+fastjsonapi.UnmarshalPayload(ctx.Response.Body(), blog)
 
 // ... assert stuff about blog here ...
 ```

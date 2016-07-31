@@ -1,114 +1,113 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
 	"regexp"
 	"strconv"
 	"time"
+	"encoding/json"
 
 	"github.com/gofury/fastjsonapi"
+	"github.com/valyala/fasthttp"
+	"bytes"
 )
 
-func createBlog(w http.ResponseWriter, r *http.Request) {
-	jsonapiRuntime := jsonapi.NewRuntime().Instrument("blogs.create")
+func createBlog(ctx *fasthttp.RequestCtx) {
+	jsonapiRuntime := fastjsonapi.NewRuntime().Instrument("blogs.create")
 
 	blog := new(Blog)
 
-	if err := jsonapiRuntime.UnmarshalPayload(r.Body, blog); err != nil {
-		http.Error(w, err.Error(), 500)
+	if err := jsonapiRuntime.UnmarshalPayload(ctx.PostBody(), blog); err != nil {
+		ctx.Error(err.Error(), fasthttp.StatusInternalServerError)
 		return
 	}
 
 	// ...do stuff with your blog...
 
-	w.WriteHeader(201)
-	w.Header().Set("Content-Type", "application/vnd.api+json")
+	ctx.SetStatusCode(fasthttp.StatusCreated)
+	ctx.SetContentTypeBytes(fastjsonapi.ContentType)
 
-	if err := jsonapiRuntime.MarshalOnePayload(w, blog); err != nil {
-		http.Error(w, err.Error(), 500)
+	if err := jsonapiRuntime.MarshalOnePayload(ctx, blog); err != nil {
+		ctx.Error(err.Error(), fasthttp.StatusInternalServerError)
 	}
 }
 
-func listBlogs(w http.ResponseWriter, r *http.Request) {
-	jsonapiRuntime := jsonapi.NewRuntime().Instrument("blogs.list")
+func listBlogs(ctx *fasthttp.RequestCtx) {
+	jsonapiRuntime := fastjsonapi.NewRuntime().Instrument("blogs.list")
 	// ...fetch your blogs, filter, offset, limit, etc...
 
 	// but, for now
 	blogs := testBlogsForList()
 
-	w.WriteHeader(200)
-	w.Header().Set("Content-Type", "application/vnd.api+json")
-	if err := jsonapiRuntime.MarshalManyPayload(w, blogs); err != nil {
-		http.Error(w, err.Error(), 500)
+	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.SetContentTypeBytes(fastjsonapi.ContentType)
+	if err := jsonapiRuntime.MarshalManyPayload(ctx, blogs); err != nil {
+		ctx.Error(err.Error(), fasthttp.StatusInternalServerError)
 	}
 }
 
-func showBlog(w http.ResponseWriter, r *http.Request) {
-	id := r.FormValue("id")
+func showBlog(ctx *fasthttp.RequestCtx) {
+	id := string(ctx.FormValue("id"))
 
 	// ...fetch your blog...
 
 	intID, err := strconv.Atoi(id)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		ctx.Error(err.Error(), fasthttp.StatusInternalServerError)
 		return
 	}
 
-	jsonapiRuntime := jsonapi.NewRuntime().Instrument("blogs.show")
+	jsonapiRuntime := fastjsonapi.NewRuntime().Instrument("blogs.show")
 
 	// but, for now
 	blog := testBlogForCreate(intID)
-	w.WriteHeader(200)
+	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.SetContentTypeBytes(fastjsonapi.ContentType)
 
-	w.Header().Set("Content-Type", "application/vnd.api+json")
-	if err := jsonapiRuntime.MarshalOnePayload(w, blog); err != nil {
-		http.Error(w, err.Error(), 500)
+	if err := jsonapiRuntime.MarshalOnePayload(ctx, blog); err != nil {
+		ctx.Error(err.Error(), fasthttp.StatusInternalServerError)
 	}
 }
 
 func main() {
-	jsonapi.Instrumentation = func(r *jsonapi.Runtime, eventType jsonapi.Event, callGUID string, dur time.Duration) {
+	fastjsonapi.Instrumentation = func(r *fastjsonapi.Runtime, eventType fastjsonapi.Event, callGUID string, dur time.Duration) {
 		metricPrefix := r.Value("instrument").(string)
 
-		if eventType == jsonapi.UnmarshalStart {
+		if eventType == fastjsonapi.UnmarshalStart {
 			fmt.Printf("%s: id, %s, started at %v\n", metricPrefix+".jsonapi_unmarshal_time", callGUID, time.Now())
 		}
 
-		if eventType == jsonapi.UnmarshalStop {
+		if eventType == fastjsonapi.UnmarshalStop {
 			fmt.Printf("%s: id, %s, stopped at, %v , and took %v to unmarshal payload\n", metricPrefix+".jsonapi_unmarshal_time", callGUID, time.Now(), dur)
 		}
 
-		if eventType == jsonapi.MarshalStart {
+		if eventType == fastjsonapi.MarshalStart {
 			fmt.Printf("%s: id, %s, started at %v\n", metricPrefix+".jsonapi_marshal_time", callGUID, time.Now())
 		}
 
-		if eventType == jsonapi.MarshalStop {
+		if eventType == fastjsonapi.MarshalStop {
 			fmt.Printf("%s: id, %s, stopped at, %v , and took %v to marshal payload\n", metricPrefix+".jsonapi_marshal_time", callGUID, time.Now(), dur)
 		}
 	}
 
-	http.HandleFunc("/blogs", func(w http.ResponseWriter, r *http.Request) {
-		if !regexp.MustCompile(`application/vnd\.api\+json`).Match([]byte(r.Header.Get("Accept"))) {
-			http.Error(w, "Unsupported Media Type", 415)
+	requestHandler := func(ctx *fasthttp.RequestCtx) {
+		if ! regexp.MustCompile(`application/vnd\.api\+json`).Match(ctx.Request.Header.Peek("Accept")) {
+			ctx.Error("Unsupported Media Type", fasthttp.StatusUnsupportedMediaType)
 			return
+		} else if ( !bytes.Contains(ctx.RequestURI(), []byte("/blogs")) ) {
+			ctx.Error("Resource not found", fasthttp.StatusNotFound)
 		}
 
-		if r.Method == "POST" {
-			createBlog(w, r)
-		} else if r.FormValue("id") != "" {
-			showBlog(w, r)
+		if bytes.Equal(ctx.Method(), []byte("POST")) {
+			createBlog(ctx)
+		} else if ctx.FormValue("id") != nil {
+			showBlog(ctx)
 		} else {
-			listBlogs(w, r)
+			listBlogs(ctx)
 		}
-	})
+	}
 
-	exerciseHandler()
+	exerciseHandler(requestHandler)
 }
 
 func testBlogForCreate(i int) *Blog {
@@ -176,72 +175,52 @@ func testBlogsForList() []interface{} {
 	return blogs
 }
 
-func exerciseHandler() {
+func exerciseHandler(handler fasthttp.RequestHandler) {
 	// list
-	req, _ := http.NewRequest("GET", "/blogs", nil)
-
-	req.Header.Set("Accept", "application/vnd.api+json")
-
-	w := httptest.NewRecorder()
+	ctx := newRequest("GET", "/blogs", nil)
 
 	fmt.Println("============ start list ===========\n")
-	http.DefaultServeMux.ServeHTTP(w, req)
+	handler(ctx)
 	fmt.Println("============ stop list ===========\n")
 
-	jsonReply, _ := ioutil.ReadAll(w.Body)
-
 	fmt.Println("============ jsonapi response from list ===========\n")
-	fmt.Println(string(jsonReply))
-	fmt.Println("============== end raw jsonapi from list =============")
+	fmt.Println(string(ctx.Response.Body()))
+	fmt.Println("============== end raw fastjsonapi from list =============")
 
 	// show
-	req, _ = http.NewRequest("GET", "/blogs?id=1", nil)
-
-	req.Header.Set("Accept", "application/vnd.api+json")
-
-	w = httptest.NewRecorder()
+	ctx = newRequest("GET", "/blogs?id=1", nil)
 
 	fmt.Println("============ start show ===========\n")
-	http.DefaultServeMux.ServeHTTP(w, req)
+	handler(ctx)
 	fmt.Println("============ stop show ===========\n")
 
-	jsonReply, _ = ioutil.ReadAll(w.Body)
-
 	fmt.Println("\n============ jsonapi response from show ===========\n")
-	fmt.Println(string(jsonReply))
-	fmt.Println("============== end raw jsonapi from show =============")
+	fmt.Println(string(ctx.Response.Body()))
+	fmt.Println("============== end raw fastjsonapi from show =============")
 
 	// create
 	blog := testBlogForCreate(1)
 	in := bytes.NewBuffer(nil)
-	jsonapi.MarshalOnePayloadEmbedded(in, blog)
+	fastjsonapi.MarshalOnePayloadEmbedded(in, blog)
 
-	req, _ = http.NewRequest("POST", "/blogs", in)
-
-	req.Header.Set("Accept", "application/vnd.api+json")
-
-	w = httptest.NewRecorder()
+	ctx = newRequest("POST", "/blogs", in.Bytes())
 
 	fmt.Println("============ start create ===========\n")
-	http.DefaultServeMux.ServeHTTP(w, req)
+	handler(ctx)
 	fmt.Println("============ stop create ===========\n")
 
-	buf := bytes.NewBuffer(nil)
-	io.Copy(buf, w.Body)
-
 	fmt.Println("\n============ jsonapi response from create ===========\n")
-	fmt.Println(buf.String())
+	fmt.Println(string(ctx.Response.Body()))
 	fmt.Println("============== end raw jsonapi response =============")
 
 	responseBlog := new(Blog)
 
-	jsonapi.UnmarshalPayload(buf, responseBlog)
+	fastjsonapi.UnmarshalPayload(ctx.Response.Body(), responseBlog)
 
-	out := bytes.NewBuffer(nil)
-	json.NewEncoder(out).Encode(responseBlog)
+	blogJson, _ := json.Marshal(responseBlog)
 
 	fmt.Println("\n================ Viola! Converted back our Blog struct =================\n")
-	fmt.Printf("%s\n", out.Bytes())
+	fmt.Printf("%s\n", blogJson)
 	fmt.Println("================ end marshal materialized Blog struct =================")
 }
 
@@ -267,4 +246,13 @@ type Comment struct {
 	ID     int    `jsonapi:"primary,comments"`
 	PostID int    `jsonapi:"attr,post_id"`
 	Body   string `jsonapi:"attr,body"`
+}
+
+func newRequest(method string, uri string, data []byte) *fasthttp.RequestCtx {
+	ctx := fasthttp.RequestCtx{}
+	ctx.Request.Header.SetMethod(method)
+	ctx.Request.SetRequestURI(uri)
+	ctx.Request.SetBody(data)
+	ctx.Request.Header.SetBytesV("Accept", fastjsonapi.ContentType)
+	return &ctx
 }
