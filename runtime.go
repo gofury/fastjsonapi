@@ -15,6 +15,7 @@ const (
 	UnmarshalStop
 	MarshalStart
 	MarshalStop
+	ContentType = "application/vnd.api+json"
 )
 
 type Runtime struct {

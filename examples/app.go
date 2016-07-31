@@ -13,50 +13,51 @@ import (
 	"time"
 
 	"github.com/gofury/fastjsonapi"
+	"github.com/valyala/fasthttp"
 )
 
-func createBlog(w http.ResponseWriter, r *http.Request) {
+func createBlog(ctx *fasthttp.RequestCtx) {
 	jsonapiRuntime := jsonapi.NewRuntime().Instrument("blogs.create")
 
 	blog := new(Blog)
 
-	if err := jsonapiRuntime.UnmarshalPayload(r.Body, blog); err != nil {
-		http.Error(w, err.Error(), 500)
+	if err := jsonapiRuntime.UnmarshalPayload(ctx.PostBody(), blog); err != nil {
+		ctx.Error(err.Error(), fasthttp.StatusInternalServerError)
 		return
 	}
 
 	// ...do stuff with your blog...
 
-	w.WriteHeader(201)
-	w.Header().Set("Content-Type", "application/vnd.api+json")
+	ctx.SetStatusCode(fasthttp.StatusCreated)
+	ctx.SetContentType(fastjsonapi.ContentType)
 
-	if err := jsonapiRuntime.MarshalOnePayload(w, blog); err != nil {
-		http.Error(w, err.Error(), 500)
+	if err := jsonapiRuntime.MarshalOnePayload(ctx, blog); err != nil {
+		ctx.Error(err.Error(), fasthttp.StatusInternalServerError)
 	}
 }
 
-func listBlogs(w http.ResponseWriter, r *http.Request) {
+func listBlogs(ctx *fasthttp.RequestCtx) {
 	jsonapiRuntime := jsonapi.NewRuntime().Instrument("blogs.list")
 	// ...fetch your blogs, filter, offset, limit, etc...
 
 	// but, for now
 	blogs := testBlogsForList()
 
-	w.WriteHeader(200)
-	w.Header().Set("Content-Type", "application/vnd.api+json")
-	if err := jsonapiRuntime.MarshalManyPayload(w, blogs); err != nil {
-		http.Error(w, err.Error(), 500)
+	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.SetContentType(fastjsonapi.ContentType)
+	if err := jsonapiRuntime.MarshalManyPayload(ctx, blogs); err != nil {
+		ctx.Error(err.Error(), fasthttp.StatusInternalServerError)
 	}
 }
 
-func showBlog(w http.ResponseWriter, r *http.Request) {
-	id := r.FormValue("id")
+func showBlog(ctx *fasthttp.RequestCtx) {
+	id := string(ctx.FormValue("id"))
 
 	// ...fetch your blog...
 
 	intID, err := strconv.Atoi(id)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		ctx.Error(err.Error(), fasthttp.StatusInternalServerError)
 		return
 	}
 
@@ -64,11 +65,11 @@ func showBlog(w http.ResponseWriter, r *http.Request) {
 
 	// but, for now
 	blog := testBlogForCreate(intID)
-	w.WriteHeader(200)
+	ctx.SetStatusCode(fasthttp.StatusOK)
 
-	w.Header().Set("Content-Type", "application/vnd.api+json")
+	ctx.SetConnectionClose(fastjsonapi.ContentType)
 	if err := jsonapiRuntime.MarshalOnePayload(w, blog); err != nil {
-		http.Error(w, err.Error(), 500)
+		ctx.Error(err.Error(), fasthttp.StatusInternalServerError)
 	}
 }
 
@@ -93,13 +94,13 @@ func main() {
 		}
 	}
 
-	http.HandleFunc("/blogs", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/blogs", func(ctx *fasthttp.RequestCtx) {
 		if !regexp.MustCompile(`application/vnd\.api\+json`).Match([]byte(r.Header.Get("Accept"))) {
-			http.Error(w, "Unsupported Media Type", 415)
+			http.Error(w, "Unsupported Media Type", fasthttp.StatusUnsupportedMediaType)
 			return
 		}
 
-		if r.Method == "POST" {
+		if ctx.Method() == byte[]("POST") {
 			createBlog(w, r)
 		} else if r.FormValue("id") != "" {
 			showBlog(w, r)
