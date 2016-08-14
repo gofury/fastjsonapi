@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/mailru/easyjson"
 	"github.com/valyala/fasthttp"
+	"github.com/pquerna/ffjson/ffjson"
 )
 
 const (
@@ -65,7 +65,7 @@ var (
 func UnmarshalPayload(data []byte, model interface{}) error {
 	payload := new(OnePayload)
 
-	if err := easyjson.Unmarshal(data, payload); err != nil {
+	if err := ffjson.Unmarshal(data, payload); err != nil {
 		return err
 	}
 
@@ -84,7 +84,7 @@ func UnmarshalPayload(data []byte, model interface{}) error {
 func UnmarshalManyPayload(data []byte, t reflect.Type) ([]interface{}, error) {
 	payload := new(ManyPayload)
 
-	if err := easyjson.Unmarshal(data, payload); err != nil {
+	if err := ffjson.Unmarshal(data, payload); err != nil {
 		return nil, err
 	}
 
@@ -365,8 +365,8 @@ func unmarshalNode(data *Node, model reflect.Value, included *map[string]*Node) 
 				relationship := new(RelationshipManyNode)
 
 				buf := fasthttp.AcquireByteBuffer()
-				json.NewEncoder(buf).Encode(data.Relationships[args[1]])
-				relationship.UnmarshalJSON(buf.B)
+				ffjson.NewEncoder(buf).Encode(data.Relationships[args[1]])
+				ffjson.Unmarshal(buf.B, relationship)
 				fasthttp.ReleaseByteBuffer(buf)
 
 				data := relationship.Data
@@ -392,7 +392,7 @@ func unmarshalNode(data *Node, model reflect.Value, included *map[string]*Node) 
 				relationship := new(RelationshipOneNode)
 
 				buf := fasthttp.AcquireByteBuffer()
-				json.NewEncoder(buf).Encode(data.Relationships[args[1]])
+				ffjson.NewEncoder(buf).Encode(data.Relationships[args[1]])
 				relationship.UnmarshalJSON(buf.B)
 				fasthttp.ReleaseByteBuffer(buf)
 
