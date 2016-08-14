@@ -1,8 +1,6 @@
 package fastjsonapi
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -10,6 +8,7 @@ import (
 	"strings"
 	"time"
 	"github.com/mailru/easyjson"
+	"github.com/valyala/fasthttp"
 )
 
 const (
@@ -365,10 +364,10 @@ func unmarshalNode(data *Node, model reflect.Value, included *map[string]*Node) 
 			if isSlice {
 				relationship := new(RelationshipManyNode)
 
-				buf := bytes.NewBuffer(nil)
-
+				buf := fasthttp.AcquireByteBuffer()
 				json.NewEncoder(buf).Encode(data.Relationships[args[1]])
-				json.NewDecoder(buf).Decode(relationship)
+				relationship.UnmarshalJSON(buf.B)
+				fasthttp.ReleaseByteBuffer(buf)
 
 				data := relationship.Data
 				models := reflect.New(fieldValue.Type()).Elem()
@@ -392,12 +391,10 @@ func unmarshalNode(data *Node, model reflect.Value, included *map[string]*Node) 
 			} else {
 				relationship := new(RelationshipOneNode)
 
-				buf := bytes.NewBuffer(nil)
-
-				json.NewEncoder(buf).Encode(
-					data.Relationships[args[1]],
-				)
-				json.NewDecoder(buf).Decode(relationship)
+				buf := fasthttp.AcquireByteBuffer()
+				json.NewEncoder(buf).Encode(data.Relationships[args[1]])
+				relationship.UnmarshalJSON(buf.B)
+				fasthttp.ReleaseByteBuffer(buf)
 
 				m := reflect.New(fieldValue.Type().Elem())
 

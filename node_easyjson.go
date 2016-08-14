@@ -15,7 +15,7 @@ var (
 	_ = jwriter.Writer{}
 )
 
-func easyjsonCdfae1c8DecodeGithubComGofuryJsonapi(in *jlexer.Lexer, out *RelationshipManyNode) {
+func easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi(in *jlexer.Lexer, out *RelationshipManyNode) {
 	if in.IsNull() {
 		in.Skip()
 		return
@@ -83,7 +83,7 @@ func easyjsonCdfae1c8DecodeGithubComGofuryJsonapi(in *jlexer.Lexer, out *Relatio
 	}
 	in.Delim('}')
 }
-func easyjsonCdfae1c8EncodeGithubComGofuryJsonapi(out *jwriter.Writer, in RelationshipManyNode) {
+func easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi(out *jwriter.Writer, in RelationshipManyNode) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -137,27 +137,27 @@ func easyjsonCdfae1c8EncodeGithubComGofuryJsonapi(out *jwriter.Writer, in Relati
 // MarshalJSON supports json.Marshaler interface
 func (v RelationshipManyNode) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonCdfae1c8EncodeGithubComGofuryJsonapi(&w, v)
+	easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v RelationshipManyNode) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonCdfae1c8EncodeGithubComGofuryJsonapi(w, v)
+	easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *RelationshipManyNode) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonCdfae1c8DecodeGithubComGofuryJsonapi(&r, v)
+	easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *RelationshipManyNode) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonCdfae1c8DecodeGithubComGofuryJsonapi(l, v)
+	easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi(l, v)
 }
-func easyjsonCdfae1c8DecodeGithubComGofuryJsonapi1(in *jlexer.Lexer, out *RelationshipOneNode) {
+func easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi1(in *jlexer.Lexer, out *RelationshipOneNode) {
 	if in.IsNull() {
 		in.Skip()
 		return
@@ -213,7 +213,7 @@ func easyjsonCdfae1c8DecodeGithubComGofuryJsonapi1(in *jlexer.Lexer, out *Relati
 	}
 	in.Delim('}')
 }
-func easyjsonCdfae1c8EncodeGithubComGofuryJsonapi1(out *jwriter.Writer, in RelationshipOneNode) {
+func easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi1(out *jwriter.Writer, in RelationshipOneNode) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -260,27 +260,27 @@ func easyjsonCdfae1c8EncodeGithubComGofuryJsonapi1(out *jwriter.Writer, in Relat
 // MarshalJSON supports json.Marshaler interface
 func (v RelationshipOneNode) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonCdfae1c8EncodeGithubComGofuryJsonapi1(&w, v)
+	easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi1(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v RelationshipOneNode) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonCdfae1c8EncodeGithubComGofuryJsonapi1(w, v)
+	easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi1(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *RelationshipOneNode) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonCdfae1c8DecodeGithubComGofuryJsonapi1(&r, v)
+	easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi1(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *RelationshipOneNode) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonCdfae1c8DecodeGithubComGofuryJsonapi1(l, v)
+	easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi1(l, v)
 }
-func easyjsonCdfae1c8DecodeGithubComGofuryJsonapi2(in *jlexer.Lexer, out *Node) {
+func easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi2(in *jlexer.Lexer, out *Node) {
 	if in.IsNull() {
 		in.Skip()
 		return
@@ -348,7 +348,7 @@ func easyjsonCdfae1c8DecodeGithubComGofuryJsonapi2(in *jlexer.Lexer, out *Node) 
 	}
 	in.Delim('}')
 }
-func easyjsonCdfae1c8EncodeGithubComGofuryJsonapi2(out *jwriter.Writer, in Node) {
+func easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi2(out *jwriter.Writer, in Node) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -424,27 +424,27 @@ func easyjsonCdfae1c8EncodeGithubComGofuryJsonapi2(out *jwriter.Writer, in Node)
 // MarshalJSON supports json.Marshaler interface
 func (v Node) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonCdfae1c8EncodeGithubComGofuryJsonapi2(&w, v)
+	easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Node) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonCdfae1c8EncodeGithubComGofuryJsonapi2(w, v)
+	easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *Node) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonCdfae1c8DecodeGithubComGofuryJsonapi2(&r, v)
+	easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Node) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonCdfae1c8DecodeGithubComGofuryJsonapi2(l, v)
+	easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi2(l, v)
 }
-func easyjsonCdfae1c8DecodeGithubComGofuryJsonapi3(in *jlexer.Lexer, out *ManyPayload) {
+func easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi3(in *jlexer.Lexer, out *ManyPayload) {
 	if in.IsNull() {
 		in.Skip()
 		return
@@ -532,7 +532,7 @@ func easyjsonCdfae1c8DecodeGithubComGofuryJsonapi3(in *jlexer.Lexer, out *ManyPa
 	}
 	in.Delim('}')
 }
-func easyjsonCdfae1c8EncodeGithubComGofuryJsonapi3(out *jwriter.Writer, in ManyPayload) {
+func easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi3(out *jwriter.Writer, in ManyPayload) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -605,27 +605,27 @@ func easyjsonCdfae1c8EncodeGithubComGofuryJsonapi3(out *jwriter.Writer, in ManyP
 // MarshalJSON supports json.Marshaler interface
 func (v ManyPayload) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonCdfae1c8EncodeGithubComGofuryJsonapi3(&w, v)
+	easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi3(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v ManyPayload) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonCdfae1c8EncodeGithubComGofuryJsonapi3(w, v)
+	easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi3(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *ManyPayload) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonCdfae1c8DecodeGithubComGofuryJsonapi3(&r, v)
+	easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi3(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *ManyPayload) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonCdfae1c8DecodeGithubComGofuryJsonapi3(l, v)
+	easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi3(l, v)
 }
-func easyjsonCdfae1c8DecodeGithubComGofuryJsonapi4(in *jlexer.Lexer, out *OnePayload) {
+func easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi4(in *jlexer.Lexer, out *OnePayload) {
 	if in.IsNull() {
 		in.Skip()
 		return
@@ -701,7 +701,7 @@ func easyjsonCdfae1c8DecodeGithubComGofuryJsonapi4(in *jlexer.Lexer, out *OnePay
 	}
 	in.Delim('}')
 }
-func easyjsonCdfae1c8EncodeGithubComGofuryJsonapi4(out *jwriter.Writer, in OnePayload) {
+func easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi4(out *jwriter.Writer, in OnePayload) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -767,23 +767,23 @@ func easyjsonCdfae1c8EncodeGithubComGofuryJsonapi4(out *jwriter.Writer, in OnePa
 // MarshalJSON supports json.Marshaler interface
 func (v OnePayload) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonCdfae1c8EncodeGithubComGofuryJsonapi4(&w, v)
+	easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi4(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v OnePayload) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonCdfae1c8EncodeGithubComGofuryJsonapi4(w, v)
+	easyjsonCdfae1c8EncodeGithubComGofuryFastjsonapi4(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *OnePayload) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonCdfae1c8DecodeGithubComGofuryJsonapi4(&r, v)
+	easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi4(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *OnePayload) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonCdfae1c8DecodeGithubComGofuryJsonapi4(l, v)
+	easyjsonCdfae1c8DecodeGithubComGofuryFastjsonapi4(l, v)
 }
