@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"github.com/mailru/easyjson"
+	"github.com/satori/go.uuid"
 )
 
 var (
@@ -207,6 +208,8 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 				node.ID = strconv.FormatInt(nID, 10)
 			case uint64:
 				node.ID = strconv.FormatUint(nID, 10)
+			case uuid.UUID:
+				node.ID = nID.String()
 			default:
 				er = ErrBadJSONAPIID
 				break

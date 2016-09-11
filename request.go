@@ -10,6 +10,7 @@ import (
 	"github.com/mailru/easyjson"
 	"github.com/valyala/fasthttp"
 	"encoding/json"
+	"github.com/satori/go.uuid"
 )
 
 const (
@@ -178,6 +179,13 @@ func unmarshalNode(data *Node, model reflect.Value, included *map[string]*Node) 
 					break
 				}
 				fieldValue.SetInt(int64(id))
+			} else if fieldValue.Type() == reflect.TypeOf(uuid.UUID{}) {
+				id, err := uuid.FromString(data.ID)
+				if err != nil {
+					er = err
+					break
+				}
+				fieldValue.Set(reflect.ValueOf(id))
 			} else {
 				er = ErrBadJSONAPIID
 				break

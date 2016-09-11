@@ -7,6 +7,12 @@ A fasthttp fork of the Google serailizer/deserializer for json payloads that com
 
 Also visit, [Godoc](http://godoc.org/github.com/gofury/fastjsonapi).
 
+## Extra Features
+This fork offers:
+- `fasthttp` integration
+- `easyjson` for non-reflection based de/serialisation of JSON
+- `satori/go.uuid` support
+
 ## Installation
 
 ```

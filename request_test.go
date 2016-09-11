@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 	"io/ioutil"
+	"github.com/satori/go.uuid"
 )
 
 type BadModel struct {
@@ -129,6 +130,20 @@ func TestUnmarshalSetsID(t *testing.T) {
 
 	if out.ID != 2 {
 		t.Fatalf("Did not set ID on dst interface")
+	}
+}
+
+func TestUnmarshalSetsUUID(t *testing.T) {
+	in := samplePayloadWithUUID()
+	out := new(UUIDModel)
+
+	if err := UnmarshalPayload(in, out); err != nil {
+		t.Fatal(err)
+	}
+
+	expected, _ := uuid.FromString("52e23d12-c5f1-4ced-9ed3-2a2ce4ae4c39")
+	if out.ID != expected {
+		t.Fatalf("Unexpected UUID %s, should be %s", expected, out.ID)
 	}
 }
 
@@ -433,6 +448,21 @@ func samplePayloadWithID() []byte {
 			Attributes: map[string]interface{}{
 				"title":      "New blog",
 				"view_count": 1000,
+			},
+		},
+	}
+
+	bytes, _ := payload.MarshalJSON()
+	return bytes
+}
+
+func samplePayloadWithUUID() []byte {
+	payload := &OnePayload{
+		Data: &Node{
+			ID:   "52e23d12-c5f1-4ced-9ed3-2a2ce4ae4c39",
+			Type: "uuidmodels",
+			Attributes: map[string]interface{}{
+				"body": "uuid foo bar",
 			},
 		},
 	}

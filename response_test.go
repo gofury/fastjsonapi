@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
+	"github.com/satori/go.uuid"
 )
 
 type Blog struct {
@@ -44,6 +45,11 @@ type Book struct {
 	Description *string `jsonapi:"attr,description"`
 	Pages       *uint   `jsonapi:"attr,pages,omitempty"`
 	PublishedAt time.Time
+}
+
+type UUIDModel struct {
+	ID   uuid.UUID `jsonapi:"primary,uuidmodels"`
+	Body string    `jsonapi:"attr,body"`
 }
 
 func TestOmitsEmptyAnnotation(t *testing.T) {
@@ -108,6 +114,28 @@ func TestHasPrimaryAnnotation(t *testing.T) {
 
 	if data.ID != "5" {
 		t.Fatalf("ID not transfered")
+	}
+}
+
+func TestHasPrimaryUUID(t *testing.T) {
+	data := &UUIDModel{
+		ID: uuid.NewV4(),
+		Body: "uuid foo bar",
+	}
+
+	out := bytes.NewBuffer(nil)
+	if err := MarshalOnePayload(out, data); err != nil {
+		t.Fatal(err)
+	}
+
+	resp := new(OnePayload)
+	if err := resp.UnmarshalJSON(out.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+
+	id, _ := uuid.FromString(resp.Data.ID)
+	if id != data.ID {
+		t.Fatalf("unexpected data id %s, should be %s", id, data.ID)
 	}
 }
 
