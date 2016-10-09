@@ -9,17 +9,28 @@ import (
 	"strings"
 	"time"
 	"github.com/mailru/easyjson"
-	"github.com/satori/go.uuid"
 )
 
 var (
+	// ErrBadJSONAPIStructTag is returned when the Struct field's JSON API
+	// annotation is invalid.
 	ErrBadJSONAPIStructTag = errors.New("Bad jsonapi struct tag format")
-	ErrBadJSONAPIID        = errors.New("id should be either string or int")
+	// ErrBadJSONAPIID is returned when the Struct JSON API annotated "id" field
+	// was not a valid numeric type.
+	ErrBadJSONAPIID = errors.New(
+		"id should be either string, int(8,16,32,64) or uint(8,16,32,64)")
+	// ErrExpectedSlice is returned when a variable or arugment was expected to
+	// be a slice of *Structs; MarshalMany will return this error when its
+	// interface{} argument is invalid.
+	ErrExpectedSlice = errors.New("models should be a slice of struct pointers")
 )
 
-// MarshalOnePayload writes a jsonapi response with one, with related records sideloaded, into "included" array.
-// This method encodes a response for a single record only. Hence, data will be a single record rather
-// than an array of records.  If you want to serialize many records, see, MarshalManyPayload.
+const iso8601TimeFormat = "2006-01-02T15:04:05Z"
+
+// MarshalOnePayload writes a jsonapi response with one, with related records
+// sideloaded, into "included" array. This method encodes a response for a
+// single record only. Hence, data will be a single record rather than an array
+// of records.  If you want to serialize many records, see, MarshalManyPayload.
 //
 // See UnmarshalPayload for usage example.
 //
@@ -57,9 +68,9 @@ func MarshalOnePayloadWithoutIncluded(w io.Writer, model interface{}) error {
 	return nil
 }
 
-// MarshalOne does the same as MarshalOnePayload except it just returns the payload
-// and doesn't write out results.
-// Useful is you use your JSON rendering library.
+// MarshalOne does the same as MarshalOnePayload except it just returns the
+// payload and doesn't write out results. Useful is you use your JSON rendering
+// library.
 func MarshalOne(model interface{}) (*OnePayload, error) {
 	included := make(map[string]*Node)
 
@@ -74,12 +85,14 @@ func MarshalOne(model interface{}) (*OnePayload, error) {
 	return payload, nil
 }
 
-// MarshalManyPayload writes a jsonapi response with many records, with related records sideloaded, into "included" array.
-// This method encodes a response for a slice of records, hence data will be an array of
-// records rather than a single record.  To serialize a single record, see MarshalOnePayload
+// MarshalManyPayload writes a jsonapi response with many records, with related
+// records sideloaded, into "included" array. This method encodes a response for
+// a slice of records, hence data will be an array of records rather than a
+// single record.  To serialize a single record, see MarshalOnePayload
 //
-// For example you could pass it, w, your http.ResponseWriter, and, models, a slice of Blog
-// struct instance pointers as interface{}'s to write to the response,
+// For example you could pass it, w, your http.ResponseWriter, and, models, a
+// slice of Blog struct instance pointers as interface{}'s to write to the
+// response,
 //
 //	 func ListBlogs(w http.ResponseWriter, r *http.Request) {
 //		 // ... fetch your blogs and filter, offset, limit, etc ...
@@ -96,9 +109,13 @@ func MarshalOne(model interface{}) (*OnePayload, error) {
 //
 // Visit https://github.com/google/jsonapi#list for more info.
 //
-// models []interface{} should be a slice of struct pointers.
-func MarshalManyPayload(w io.Writer, models []interface{}) error {
-	payload, err := MarshalMany(models)
+// models interface{} should be a slice of struct pointers.
+func MarshalManyPayload(w io.Writer, models interface{}) error {
+	m, err := convertToSliceInterface(&models)
+	if err != nil {
+		return err
+	}
+	payload, err := MarshalMany(m)
 	if err != nil {
 		return err
 	}
@@ -110,9 +127,9 @@ func MarshalManyPayload(w io.Writer, models []interface{}) error {
 	return nil
 }
 
-// MarshalMany does the same as MarshalManyPayload except it just returns the payload
-// and doesn't write out results.
-// Useful is you use your JSON rendering library.
+// MarshalMany does the same as MarshalManyPayload except it just returns the
+// payload and doesn't write out results. Useful is you use your JSON rendering
+// library.
 func MarshalMany(models []interface{}) (*ManyPayload, error) {
 	var data []*Node
 	included := make(map[string]*Node)
@@ -139,16 +156,17 @@ func MarshalMany(models []interface{}) (*ManyPayload, error) {
 	return payload, nil
 }
 
-// MarshalOnePayloadEmbedded - This method not meant to for use in implementation code, although feel
-// free.  The purpose of this method is for use in tests.  In most cases, your
-// request payloads for create will be embedded rather than sideloaded for related records.
-// This method will serialize a single struct pointer into an embedded json
-// response.  In other words, there will be no, "included", array in the json
-// all relationships will be serailized inline in the data.
+// MarshalOnePayloadEmbedded - This method not meant to for use in
+// implementation code, although feel free.  The purpose of this method is for
+// use in tests.  In most cases, your request payloads for create will be
+// embedded rather than sideloaded for related records. This method will
+// serialize a single struct pointer into an embedded json response.  In other
+// words, there will be no, "included", array in the json all relationships will
+// be serailized inline in the data.
 //
-// However, in tests, you may want to construct payloads to post to create methods
-// that are embedded to most closely resemble the payloads that will be produced by
-// the client.  This is what this method is intended for.
+// However, in tests, you may want to construct payloads to post to create
+// methods that are embedded to most closely resemble the payloads that will be
+// produced by the client.  This is what this method is intended for.
 //
 // model interface{} should be a pointer to a struct.
 func MarshalOnePayloadEmbedded(w io.Writer, model interface{}) error {
@@ -172,6 +190,7 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 	var er error
 
 	modelValue := reflect.ValueOf(model).Elem()
+	modelType := reflect.ValueOf(model).Type().Elem()
 
 	for i := 0; i < modelValue.NumField(); i++ {
 		structField := modelValue.Type().Field(i)
@@ -181,6 +200,7 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 		}
 
 		fieldValue := modelValue.Field(i)
+		fieldType := modelType.Field(i)
 
 		args := strings.Split(tag, ",")
 
@@ -191,41 +211,75 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 
 		annotation := args[0]
 
-		if (annotation == "client-id" && len(args) != 1) || (annotation != "client-id" && len(args) < 2) {
+		if (annotation == clientIDAnnotation && len(args) != 1) ||
+			(annotation != clientIDAnnotation && len(args) < 2) {
 			er = ErrBadJSONAPIStructTag
 			break
 		}
 
 		if annotation == "primary" {
-			id := fieldValue.Interface()
+			v := fieldValue
 
-			switch nID := id.(type) {
-			case string:
-				node.ID = nID
-			case int:
-				node.ID = strconv.Itoa(nID)
-			case int64:
-				node.ID = strconv.FormatInt(nID, 10)
-			case uint64:
-				node.ID = strconv.FormatUint(nID, 10)
-			case uuid.UUID:
-				node.ID = nID.String()
+			// Deal with PTRS
+			var kind reflect.Kind
+			if fieldValue.Kind() == reflect.Ptr {
+				kind = fieldType.Type.Elem().Kind()
+				v = reflect.Indirect(fieldValue)
+			} else {
+				kind = fieldType.Type.Kind()
+			}
+
+			// Handle allowed types
+			switch kind {
+			case reflect.String:
+				node.ID = v.Interface().(string)
+			case reflect.Int:
+				node.ID = strconv.FormatInt(int64(v.Interface().(int)), 10)
+			case reflect.Int8:
+				node.ID = strconv.FormatInt(int64(v.Interface().(int8)), 10)
+			case reflect.Int16:
+				node.ID = strconv.FormatInt(int64(v.Interface().(int16)), 10)
+			case reflect.Int32:
+				node.ID = strconv.FormatInt(int64(v.Interface().(int32)), 10)
+			case reflect.Int64:
+				node.ID = strconv.FormatInt(v.Interface().(int64), 10)
+			case reflect.Uint:
+				node.ID = strconv.FormatUint(uint64(v.Interface().(uint)), 10)
+			case reflect.Uint8:
+				node.ID = strconv.FormatUint(uint64(v.Interface().(uint8)), 10)
+			case reflect.Uint16:
+				node.ID = strconv.FormatUint(uint64(v.Interface().(uint16)), 10)
+			case reflect.Uint32:
+				node.ID = strconv.FormatUint(uint64(v.Interface().(uint32)), 10)
+			case reflect.Uint64:
+				node.ID = strconv.FormatUint(v.Interface().(uint64), 10)
+			case reflect.Struct:
+				node.ID = v.Interface().(string)
 			default:
+				// We had a JSON float (numeric), but our field was not one of the
+				// allowed numeric types
 				er = ErrBadJSONAPIID
 				break
 			}
 
 			node.Type = args[1]
-		} else if annotation == "client-id" {
+		} else if annotation == clientIDAnnotation {
 			clientID := fieldValue.String()
 			if clientID != "" {
 				node.ClientID = clientID
 			}
 		} else if annotation == "attr" {
-			var omitEmpty bool
+			var omitEmpty, iso8601 bool
 
 			if len(args) > 2 {
-				omitEmpty = args[2] == "omitempty"
+				for _, arg := range args[2:] {
+					switch arg {
+					case "omitempty":
+						omitEmpty = true
+					case "iso8601":
+						iso8601 = true
+					}
+				}
 			}
 
 			if node.Attributes == nil {
@@ -239,7 +293,11 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 					continue
 				}
 
-				node.Attributes[args[1]] = t.Unix()
+				if iso8601 {
+					node.Attributes[args[1]] = t.UTC().Format(iso8601TimeFormat)
+				} else {
+					node.Attributes[args[1]] = t.Unix()
+				}
 			} else if fieldValue.Type() == reflect.TypeOf(new(time.Time)) {
 				// A time pointer may be nil
 				if fieldValue.IsNil() {
@@ -255,7 +313,11 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 						continue
 					}
 
-					node.Attributes[args[1]] = tm.Unix()
+					if iso8601 {
+						node.Attributes[args[1]] = tm.UTC().Format(iso8601TimeFormat)
+					} else {
+						node.Attributes[args[1]] = tm.Unix()
+					}
 				}
 			} else {
 				// Dealing with a fieldValue that is not a time
@@ -285,7 +347,12 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 			}
 
 			if isSlice {
-				relationship, err := visitModelNodeRelationships(args[1], fieldValue, included, sideload)
+				relationship, err := visitModelNodeRelationships(
+					args[1],
+					fieldValue,
+					included,
+					sideload,
+				)
 
 				if err == nil {
 					d := relationship.Data
@@ -297,7 +364,9 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 							shallowNodes = append(shallowNodes, toShallowNode(n))
 						}
 
-						node.Relationships[args[1]] = &RelationshipManyNode{Data: shallowNodes}
+						node.Relationships[args[1]] = &RelationshipManyNode{
+							Data: shallowNodes,
+						}
 					} else {
 						node.Relationships[args[1]] = relationship
 					}
@@ -306,13 +375,20 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 					break
 				}
 			} else {
-				relationship, err := visitModelNode(fieldValue.Interface(), included, sideload)
+				relationship, err := visitModelNode(
+					fieldValue.Interface(),
+					included,
+					sideload)
 				if err == nil {
 					if sideload {
 						appendIncluded(included, relationship)
-						node.Relationships[args[1]] = &RelationshipOneNode{Data: toShallowNode(relationship)}
+						node.Relationships[args[1]] = &RelationshipOneNode{
+							Data: toShallowNode(relationship),
+						}
 					} else {
-						node.Relationships[args[1]] = &RelationshipOneNode{Data: relationship}
+						node.Relationships[args[1]] = &RelationshipOneNode{
+							Data: relationship,
+						}
 					}
 				} else {
 					er = err
@@ -385,4 +461,16 @@ func nodeMapValues(m *map[string]*Node) []*Node {
 	}
 
 	return nodes
+}
+
+func convertToSliceInterface(i *interface{}) ([]interface{}, error) {
+	vals := reflect.ValueOf(*i)
+	if vals.Kind() != reflect.Slice {
+		return nil, ErrExpectedSlice
+	}
+	var response []interface{}
+	for x := 0; x < vals.Len(); x++ {
+		response = append(response, vals.Index(x).Interface())
+	}
+	return response, nil
 }

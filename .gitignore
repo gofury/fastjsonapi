@@ -3,3 +3,5 @@
 /src/
 
 .idea/
+examples/default.txt
+examples/easyjson.txt

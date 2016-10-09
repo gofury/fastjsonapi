@@ -14,7 +14,7 @@ type BadModel struct {
 }
 
 type WithPointer struct {
-	ID       string   `jsonapi:"primary,with-pointers"`
+	ID       *uint64  `jsonapi:"primary,with-pointers"`
 	Name     *string  `jsonapi:"attr,name"`
 	IsActive *bool    `jsonapi:"attr,is-active"`
 	IntVal   *int     `jsonapi:"attr,int-val"`
@@ -46,7 +46,35 @@ func TestUnmarshalToStructWithPointerAttr(t *testing.T) {
 	}
 }
 
-func TestUnmarshalToStructWithPointerAttr_AbsentVal(t *testing.T) {
+func TestUnmarshalPayload_ptrsAllNil(t *testing.T) {
+	out := new(WithPointer)
+	if err := UnmarshalPayload([]byte(`{"data": {}}`), out); err != nil {
+		t.Fatalf("Error unmarshalling to Foo")
+	}
+
+	if out.ID != nil {
+		t.Fatalf("Error unmarshalling; expected ID ptr to be nil")
+	}
+}
+
+func TestUnmarshalPayloadWithPointerID(t *testing.T) {
+	out := new(WithPointer)
+	attrs := map[string]interface{}{}
+
+	if err := UnmarshalPayload(sampleWithPointerPayload(attrs), out); err != nil {
+		t.Fatalf("Error unmarshalling to Foo")
+	}
+
+	// these were present in the payload -- expect val to be not nil
+	if out.ID == nil {
+		t.Fatalf("Error unmarshalling; expected ID ptr to be not nil")
+	}
+	if e, a := uint64(2), *out.ID; e != a {
+		t.Fatalf("Was expecting the ID to have a value of %d, got %d", e, a)
+	}
+}
+
+func TestUnmarshalPayloadWithPointerAttr_AbsentVal(t *testing.T) {
 	out := new(WithPointer)
 	in := map[string]interface{}{
 		"name":      "The name",
@@ -133,6 +161,21 @@ func TestUnmarshalSetsID(t *testing.T) {
 	}
 }
 
+func TestUnmarshal_nonNumericID(t *testing.T) {
+	data := samplePayloadWithoutIncluded()
+	data["data"].(map[string]interface{})["id"] = "non-numeric-id"
+	payload, _ := payload(data)
+	out := new(Post)
+
+	if err := UnmarshalPayload(payload, out); err != ErrBadJSONAPIID {
+		t.Fatalf(
+			"Was expecting a `%s` error, got `%s`",
+			ErrBadJSONAPIID,
+			err,
+		)
+	}
+}
+
 func TestUnmarshalSetsUUID(t *testing.T) {
 	in := samplePayloadWithUUID()
 	out := new(UUIDModel)
@@ -162,11 +205,77 @@ func TestUnmarshalSetsAttrs(t *testing.T) {
 	}
 }
 
+func TestUnmarshalParsesISO8601(t *testing.T) {
+	payload := &OnePayload{
+		Data: &Node{
+			Type: "timestamps",
+			Attributes: map[string]interface{}{
+				"timestamp": "2016-08-17T08:27:12Z",
+			},
+		},
+	}
+
+	in, _ := payload.MarshalJSON()
+	out := new(Timestamp)
+
+	if err := UnmarshalPayload(in, out); err != nil {
+		t.Fatal(err)
+	}
+
+	expected := time.Date(2016, 8, 17, 8, 27, 12, 0, time.UTC)
+
+	if !out.Time.Equal(expected) {
+		t.Fatal("Parsing the ISO8601 timestamp failed")
+	}
+}
+
+func TestUnmarshalParsesISO8601TimePointer(t *testing.T) {
+	payload := &OnePayload{
+		Data: &Node{
+			Type: "timestamps",
+			Attributes: map[string]interface{}{
+				"next": "2016-08-17T08:27:12Z",
+			},
+		},
+	}
+
+	in, _ := payload.MarshalJSON()
+	out := new(Timestamp)
+
+	if err := UnmarshalPayload(in, out); err != nil {
+		t.Fatal(err)
+	}
+
+	expected := time.Date(2016, 8, 17, 8, 27, 12, 0, time.UTC)
+
+	if !out.Next.Equal(expected) {
+		t.Fatal("Parsing the ISO8601 timestamp failed")
+	}
+}
+
+func TestUnmarshalInvalidISO8601(t *testing.T) {
+	payload := &OnePayload{
+		Data: &Node{
+			Type: "timestamps",
+			Attributes: map[string]interface{}{
+				"timestamp": "17 Aug 16 08:027 MST",
+			},
+		},
+	}
+
+	in, _ := payload.MarshalJSON()
+	out := new(Timestamp)
+
+	if err := UnmarshalPayload(in, out); err != ErrInvalidISO8601 {
+		t.Fatalf("Expected ErrInvalidISO8601, got %v", err)
+	}
+}
+
 func TestUnmarshalRelationshipsWithoutIncluded(t *testing.T) {
-	data, _ := samplePayloadWithoutIncluded()
+	in, _ := payload(samplePayloadWithoutIncluded())
 	out := new(Post)
 
-	if err := UnmarshalPayload(data, out); err != nil {
+	if err := UnmarshalPayload(in, out); err != nil {
 		t.Fatal(err)
 	}
 
@@ -335,8 +444,8 @@ func unmarshalSamplePayload() (*Blog, error) {
 	return out, nil
 }
 
-func samplePayloadWithoutIncluded() (result []byte, err error) {
-	data := map[string]interface{}{
+func samplePayloadWithoutIncluded() map[string]interface{} {
+	return map[string]interface{}{
 		"data": map[string]interface{}{
 			"type": "posts",
 			"id":   "1",
@@ -366,8 +475,10 @@ func samplePayloadWithoutIncluded() (result []byte, err error) {
 			},
 		},
 	}
+}
 
-	result, _ = json.Marshal(data)
+func payload(data map[string]interface{}) (result []byte, err error) {
+	result, err = json.Marshal(data)
 	return
 }
 
