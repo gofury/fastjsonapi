@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/valyala/fasthttp"
 	"github.com/satori/go.uuid"
 	"github.com/mailru/easyjson"
+	"github.com/valyala/bytebufferpool"
 )
 
 const (
@@ -483,10 +483,10 @@ func unmarshalNode(data *Node, model reflect.Value, included *map[string]*Node) 
 			if isSlice {
 				relationship := new(RelationshipManyNode)
 
-				buf := fasthttp.AcquireByteBuffer()
+				buf := bytebufferpool.Get()
 				json.NewEncoder(buf).Encode(data.Relationships[args[1]])
 				relationship.UnmarshalJSON(buf.B)
-				fasthttp.ReleaseByteBuffer(buf)
+				bytebufferpool.Put(buf)
 
 				data := relationship.Data
 				models := reflect.New(fieldValue.Type()).Elem()
@@ -510,10 +510,10 @@ func unmarshalNode(data *Node, model reflect.Value, included *map[string]*Node) 
 			} else {
 				relationship := new(RelationshipOneNode)
 
-				buf := fasthttp.AcquireByteBuffer()
+				buf := bytebufferpool.Get()
 				json.NewEncoder(buf).Encode(data.Relationships[args[1]])
 				relationship.UnmarshalJSON(buf.B)
-				fasthttp.ReleaseByteBuffer(buf)
+				bytebufferpool.Put(buf)
 
 				m := reflect.New(fieldValue.Type().Elem())
 

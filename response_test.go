@@ -61,6 +61,11 @@ type Car struct {
 	Year  *uint   `jsonapi:"attr,year,omitempty"`
 }
 
+type UUIDModel struct {
+	ID   uuid.UUID `jsonapi:"primary,uuidmodels"`
+	Body string    `jsonapi:"attr,body"`
+}
+
 func TestMarshalIDPtr(t *testing.T) {
 	id, make, model := "123e4567-e89b-12d3-a456-426655440000", "Ford", "Mustang"
 	car := &Car{
@@ -104,11 +109,6 @@ func TestMarshall_invalidIDType(t *testing.T) {
 			"Was expecting a `%s` error, got `%s`", ErrBadJSONAPIID, err,
 		)
 	}
-}
-
-type UUIDModel struct {
-	ID   uuid.UUID `jsonapi:"primary,uuidmodels"`
-	Body string    `jsonapi:"attr,body"`
 }
 
 func TestOmitsEmptyAnnotation(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"github.com/mailru/easyjson"
+	"github.com/satori/go.uuid"
 )
 
 var (
@@ -253,8 +254,8 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 				node.ID = strconv.FormatUint(uint64(v.Interface().(uint32)), 10)
 			case reflect.Uint64:
 				node.ID = strconv.FormatUint(v.Interface().(uint64), 10)
-			case reflect.Struct:
-				node.ID = v.Interface().(string)
+			case reflect.Array:
+				node.ID = v.Interface().(uuid.UUID).String()
 			default:
 				// We had a JSON float (numeric), but our field was not one of the
 				// allowed numeric types
