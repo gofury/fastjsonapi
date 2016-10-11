@@ -3,9 +3,10 @@ package fastjsonapi
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
 	"testing"
 	"time"
-	"io/ioutil"
+
 	"github.com/satori/go.uuid"
 )
 
@@ -184,10 +185,15 @@ func TestUnmarshalSetsUUID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected, _ := uuid.FromString("52e23d12-c5f1-4ced-9ed3-2a2ce4ae4c39")
-	if out.ID != expected {
-		t.Fatalf("Unexpected UUID %s, should be %s", expected, out.ID)
+	expectedID, _ := uuid.FromString("52e23d12-c5f1-4ced-9ed3-2a2ce4ae4c39")
+	if out.ID != expectedID {
+		t.Fatalf("Unexpected ID %s, should be %s", out.ID, expectedID)
 	}
+	expectedOtherID, _ := uuid.FromString("ed871381-ba81-407b-8e02-e18dd0129eee")
+	if out.OtherID != expectedOtherID {
+		t.Fatalf("Unexpected OtherID %s, should be %s", out.OtherID, expectedOtherID)
+	}
+
 }
 
 func TestUnmarshalSetsAttrs(t *testing.T) {
@@ -573,7 +579,8 @@ func samplePayloadWithUUID() []byte {
 			ID:   "52e23d12-c5f1-4ced-9ed3-2a2ce4ae4c39",
 			Type: "uuidmodels",
 			Attributes: map[string]interface{}{
-				"body": "uuid foo bar",
+				"body":     "uuid foo bar",
+				"other_id": "ed871381-ba81-407b-8e02-e18dd0129eee",
 			},
 		},
 	}

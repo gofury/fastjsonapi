@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
 	"github.com/satori/go.uuid"
 )
 
@@ -62,8 +63,9 @@ type Car struct {
 }
 
 type UUIDModel struct {
-	ID   uuid.UUID `jsonapi:"primary,uuidmodels"`
-	Body string    `jsonapi:"attr,body"`
+	ID      uuid.UUID `jsonapi:"primary,uuidmodels"`
+	Body    string    `jsonapi:"attr,body"`
+	OtherID uuid.UUID `jsonapi:"attr,other_id"`
 }
 
 func TestMarshalIDPtr(t *testing.T) {
@@ -178,7 +180,7 @@ func TestHasPrimaryAnnotation(t *testing.T) {
 
 func TestHasPrimaryUUID(t *testing.T) {
 	data := &UUIDModel{
-		ID: uuid.NewV4(),
+		ID:   uuid.NewV4(),
 		Body: "uuid foo bar",
 	}
 
@@ -195,6 +197,28 @@ func TestHasPrimaryUUID(t *testing.T) {
 	id, _ := uuid.FromString(resp.Data.ID)
 	if id != data.ID {
 		t.Fatalf("unexpected data id %s, should be %s", id, data.ID)
+	}
+}
+
+func TestSuppotsUUIDAttributes(t *testing.T) {
+	data := &UUIDModel{
+		ID:      uuid.NewV4(),
+		OtherID: uuid.NewV4(),
+	}
+
+	out := bytes.NewBuffer(nil)
+	if err := MarshalOnePayload(out, data); err != nil {
+		t.Fatal(err)
+	}
+
+	resp := new(OnePayload)
+	if err := resp.UnmarshalJSON(out.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+
+	otherID, _ := uuid.FromString(resp.Data.Attributes["other_id"].(string))
+	if otherID != data.OtherID {
+		t.Fatalf("unexpected data other_id %s, should be %s", otherID, data.OtherID)
 	}
 }
 

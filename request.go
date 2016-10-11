@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/satori/go.uuid"
+
 	"github.com/mailru/easyjson"
+	"github.com/satori/go.uuid"
 	"github.com/valyala/bytebufferpool"
 )
 
@@ -468,6 +469,16 @@ func unmarshalNode(data *Node, model reflect.Value, included *map[string]*Node) 
 				}
 
 				fieldValue.Set(concreteVal)
+				continue
+			}
+
+			if fieldValue.Type() == reflect.TypeOf(uuid.UUID{}) {
+				u, err := uuid.FromString(val.(string))
+				if err != nil {
+					er = err
+					break
+				}
+				fieldValue.Set(reflect.ValueOf(u))
 				continue
 			}
 
